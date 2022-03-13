@@ -2,6 +2,9 @@ package usecase
 
 import (
 	"context"
+	"fmt"
+
+	"github.dena.jp/swet/go-sampleapi/internal/apierr"
 
 	"github.com/jmoiron/sqlx"
 
@@ -27,5 +30,16 @@ func NewUser(userRepo userRepository, db *sqlx.DB) *User {
 
 func (u *User) Create(ctx context.Context, m *model.User) error {
 	// TODO methodを実装する
-	panic("implement me")
+	_, err := u.userRepo.FindByEmail(ctx, u.db, m.Email)
+	if err != apierr.ErrUserNotExists && err != nil {
+		return fmt.Errorf("user find with email %s failed: %w", m.Email, err)
+	}
+	if err == nil {
+		return apierr.ErrEmailAlreadyExists
+	}
+
+	if err := u.userRepo.Create(ctx, u.db, m); err != nil {
+		return fmt.Errorf("user create failed: with %w", err)
+	}
+	return nil
 }
