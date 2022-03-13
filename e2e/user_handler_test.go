@@ -74,4 +74,44 @@ func Test_E2E_PostUser(t *testing.T) {
 // 重複するuserでリクエストを行う
 func Test_E2E_PostUser_DuplicateEmail(t *testing.T) {
 	// TODO: testを記述していく
+	db := sqlx.MustConnect("mysql", config.Config().DBSrc())
+	defer func() {
+		db.MustExec("set foreign_key_checks = 0")
+		db.MustExec("truncate table users")
+		db.MustExec("set foreign_key_checks = 1")
+		db.Close()
+	}()
+
+	email := "test@example.com"
+
+	if _, err := db.Exec("insert into users(first_name, last_name, email, password_hash) values(?, ?, ?, ?)", "dummy_first_name", "dummy_last_name", email, "dummy_password"); err != nil {
+		t.Fatal(err)
+	}
+
+	var body bytes.Buffer
+	if err := json.NewEncoder(&body).Encode(&handler.ReqPostUserJSON{
+		FirstName: "テスト姓",
+		LastName:  "テスト名",
+		Email:     email,
+		Password:  "passw0rd1234",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/", &body)
+	rec := httptest.NewRecorder()
+	handler.PostUser(db, logging.Logger()).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status code must be 400 but: %d", rec.Code)
+	}
+
+	var result handler.ResError
+	if err := json.NewDecoder(rec.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Message != string(handler.ErrEmailAlreadyExists) {
+		t.Errorf("error Message must be %s but %s", handler.ErrEmailAlreadyExists, result.Message)
+	}
 }
