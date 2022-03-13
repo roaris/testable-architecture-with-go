@@ -115,3 +115,44 @@ func Test_E2E_PostUser_DuplicateEmail(t *testing.T) {
 		t.Errorf("error Message must be %s but %s", handler.ErrEmailAlreadyExists, result.Message)
 	}
 }
+
+// POST /users に対するtest
+// 正しくないformatのメールアドレスでリクエストを行う
+func Test_E2E_PostUser_InvalidEmail(t *testing.T) {
+	db := sqlx.MustConnect("mysql", config.Config().DBSrc())
+	defer func() {
+		db.MustExec("set foreign_key_checks = 0")
+		db.MustExec("truncate table users")
+		db.MustExec("set foreign_key_checks = 1")
+		db.Close()
+	}()
+
+	invalidEmail := "test.example.com"
+
+	var body bytes.Buffer
+	if err := json.NewEncoder(&body).Encode(&handler.ReqPostUserJSON{
+		FirstName: "テスト姓",
+		LastName:  "テスト名",
+		Email:     invalidEmail,
+		Password:  "passw0rd1234",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/", &body)
+	rec := httptest.NewRecorder()
+	handler.PostUser(db, logging.Logger()).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status code must be 400 but: %d", rec.Code)
+	}
+
+	var result handler.ResError
+	if err := json.NewDecoder(rec.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Message != string(handler.ErrBadRequest) {
+		t.Errorf("error Message must be %s but %s", handler.ErrBadRequest, result.Message)
+	}
+}
