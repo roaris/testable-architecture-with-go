@@ -11,6 +11,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
+	"github.dena.jp/swet/go-sampleapi/internal/apierr"
 	"github.dena.jp/swet/go-sampleapi/internal/config"
 	"github.dena.jp/swet/go-sampleapi/internal/handler"
 	"github.dena.jp/swet/go-sampleapi/internal/logging"
@@ -111,8 +112,8 @@ func Test_E2E_PostUser_DuplicateEmail(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if result.Message != string(handler.ErrEmailAlreadyExists) {
-		t.Errorf("error Message must be %s but %s", handler.ErrEmailAlreadyExists, result.Message)
+	if result.Message != string(apierr.ErrEmailAlreadyExists) {
+		t.Errorf("error Message must be %s but %s", apierr.ErrEmailAlreadyExists, result.Message)
 	}
 }
 
@@ -152,7 +153,7 @@ func Test_E2E_PostUser_InvalidEmail(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if result.Message != string(handler.ErrBadRequest) {
-		t.Errorf("error Message must be %s but %s", handler.ErrBadRequest, result.Message)
+	if result.Message != string(apierr.ErrBadRequest) {
+		t.Errorf("error Message must be %s but %s", apierr.ErrBadRequest, result.Message)
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.dena.jp/swet/go-sampleapi/internal/apierr"
 	"github.dena.jp/swet/go-sampleapi/internal/validator"
 )
 
@@ -35,20 +36,20 @@ func PostUser(db *sqlx.DB, logger *logrus.Logger) http.HandlerFunc {
 		var user ReqPostUserJSON
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 			logger.Warnf("json decode failed: %+v", err)
-			writeError(w, http.StatusBadRequest, ErrBadRequest)
+			writeError(w, http.StatusBadRequest, apierr.ErrBadRequest)
 			return
 		}
 
 		// 2. validation
 		if err := validator.Validator.Struct(&user); err != nil {
-			writeError(w, http.StatusBadRequest, ErrBadRequest)
+			writeError(w, http.StatusBadRequest, apierr.ErrBadRequest)
 			return
 		}
 
 		hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 		if err != nil {
 			logger.Errorf("bcrypt error: %+v", err)
-			writeError(w, http.StatusInternalServerError, ErrInternalServerError)
+			writeError(w, http.StatusInternalServerError, apierr.ErrInternalServerError)
 			return
 		}
 
@@ -61,10 +62,10 @@ func PostUser(db *sqlx.DB, logger *logrus.Logger) http.HandlerFunc {
 
 		if err != nil && err != sql.ErrNoRows { // sql.ErrNoRows以外のerrorが発生しているケース
 			logger.Warnf("select failed: %+v", err)
-			writeError(w, http.StatusInternalServerError, ErrInternalServerError)
+			writeError(w, http.StatusInternalServerError, apierr.ErrInternalServerError)
 			return
 		} else if err == nil { // errが発生していないケース、つまりuserが存在しているケース
-			writeError(w, http.StatusBadRequest, ErrEmailAlreadyExists)
+			writeError(w, http.StatusBadRequest, apierr.ErrEmailAlreadyExists)
 			return
 		}
 
@@ -72,7 +73,7 @@ func PostUser(db *sqlx.DB, logger *logrus.Logger) http.HandlerFunc {
 		rs, err := db.ExecContext(ctx, "INSERT INTO users(first_name, last_name, email, password_hash) VALUES (?, ?, ?, ?)", user.FirstName, user.LastName, user.Email, string(hash))
 		if err != nil {
 			logger.Errorf("insert failed: %+v", err)
-			writeError(w, http.StatusInternalServerError, ErrInternalServerError)
+			writeError(w, http.StatusInternalServerError, apierr.ErrInternalServerError)
 			return
 		}
 
@@ -80,7 +81,7 @@ func PostUser(db *sqlx.DB, logger *logrus.Logger) http.HandlerFunc {
 		insertedId, err := rs.LastInsertId()
 		if err != nil {
 			logger.Errorf("lastInsertId failed: %+v", err)
-			writeError(w, http.StatusInternalServerError, ErrInternalServerError)
+			writeError(w, http.StatusInternalServerError, apierr.ErrInternalServerError)
 			return
 		}
 		/* ここまで */
