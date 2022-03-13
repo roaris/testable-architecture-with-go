@@ -12,6 +12,8 @@ import (
 	"github.dena.jp/swet/go-sampleapi/internal/config"
 	"github.dena.jp/swet/go-sampleapi/internal/handler"
 	"github.dena.jp/swet/go-sampleapi/internal/logging"
+	"github.dena.jp/swet/go-sampleapi/internal/repository"
+	"github.dena.jp/swet/go-sampleapi/internal/usecase"
 )
 
 func main() {
@@ -24,7 +26,8 @@ func main() {
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/users", handler.PostUser(db, logger)).Methods("POST")
+	userUseCase := usecase.NewUser(repository.NewUser(), db)
+	r.HandleFunc("/users", handler.PostUser(userUseCase, logger)).Methods("POST")
 	r.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		w.Write([]byte("ok"))

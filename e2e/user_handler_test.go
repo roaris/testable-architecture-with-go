@@ -15,6 +15,8 @@ import (
 	"github.dena.jp/swet/go-sampleapi/internal/config"
 	"github.dena.jp/swet/go-sampleapi/internal/handler"
 	"github.dena.jp/swet/go-sampleapi/internal/logging"
+	"github.dena.jp/swet/go-sampleapi/internal/repository"
+	"github.dena.jp/swet/go-sampleapi/internal/usecase"
 )
 
 // testで作成するuserのdata
@@ -48,7 +50,8 @@ func Test_E2E_PostUser(t *testing.T) {
 	// requestをシュミレートする
 	req := httptest.NewRequest(http.MethodPost, "/", &body)
 	rec := httptest.NewRecorder()
-	handler.PostUser(db, logging.Logger()).ServeHTTP(rec, req)
+	userUseCase := usecase.NewUser(repository.NewUser(), db)
+	handler.PostUser(userUseCase, logging.Logger()).ServeHTTP(rec, req)
 
 	// responseのStatus Codeをチェックする
 	if rec.Code != http.StatusCreated {
@@ -101,7 +104,8 @@ func Test_E2E_PostUser_DuplicateEmail(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/", &body)
 	rec := httptest.NewRecorder()
-	handler.PostUser(db, logging.Logger()).ServeHTTP(rec, req)
+	userUseCase := usecase.NewUser(repository.NewUser(), db)
+	handler.PostUser(userUseCase, logging.Logger()).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status code must be 400 but: %d", rec.Code)
@@ -142,7 +146,8 @@ func Test_E2E_PostUser_InvalidEmail(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/", &body)
 	rec := httptest.NewRecorder()
-	handler.PostUser(db, logging.Logger()).ServeHTTP(rec, req)
+	userUseCase := usecase.NewUser(repository.NewUser(), db)
+	handler.PostUser(userUseCase, logging.Logger()).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status code must be 400 but: %d", rec.Code)
